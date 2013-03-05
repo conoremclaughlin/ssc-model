@@ -1,0 +1,19 @@
+{
+  "name": "ssc-model",
+  "version": "0.0.0",
+  "description": "ssc-model =========",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/conoremclaughlin/ssc-model.git"
+  },
+  "keywords": [
+    "model",
+    "ssc"
+  ],
+  "author": "conoremclaughlin",
+  "license": "BSD"
+}
