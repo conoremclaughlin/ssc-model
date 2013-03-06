@@ -1,211 +1,144 @@
-require('./fixture');
+var sscParse = require('../index.js')
+  , testSchema = require('./fixture');
 
-var Bones = require(global.__BonesPath__ || 'bones')
-  , bonesTest = require('bones-test')
-  , server = bonesTest.server()
-  , should = require('should')
-  , debug = require('debug')('bones-boiler:Rendering.mocha')
-  , $ = Bones.$
-  , util = require('util');
+describe('sscSchema', function() {
 
-var tests = [
-    { _id: 5, name: 'uno' },
-    { _id: 6, name: 'dos' }
-];
-
-var testModels = [];
-
-describe('Templating and rendering', function() {
-
-    before(function(done) {
-        server.start(done);
-    });
-
-    after(function(done) {
-        try { server.close(done); }
-        catch (err) { } // server already closed.
-    });
-
-    describe('.partial', function() {
-        it('should create a placeholder element', function(done) {
-            var html = Bones.utils.partial('test');
-            html.should.equal('<div data-view="test"></div>');
+    describe('.augment', function() {
+        it('should concatenate arrays', function(done) {
+//            done('implement');
             done();
         });
 
-        it('should create a store with makeStore', function(done) {
-            var store = Bones.utils.makeStore();
-            store.should.be.a('object');
-            store.should.have.property('nextId');
-            store.nextId().should.be.a('number').and.equal(0);
-            store.nextId().should.be.a('number').and.equal(1);
+        it('should extend objects', function(done) {
+//            done('implement');
             done();
         });
 
-        it('should store data in a store given a store', function(done) {
-            var store = Bones.utils.makeStore();
-            var html = Bones.utils.partial('test', {
-                model: 'hello'
-            }, store);
-            var element = $(html);
-            $(element).attr('data-view').should.equal('test');
-            $(element).attr('data-model').should.equal('hello');
-            $(element).attr('data-id').should.equal('0');
-            should.exist(store[0]);
-            store[0].should.be.a('object');
-            store[0].should.have.property('model');
-            store[0].model.should.equal('hello');
+        it('should wrap functions', function(done) {
+//            done('implement');
             done();
         });
 
-        it('should wrap partial with makePartialHelperWithStore', function(done) {
-            var store = Bones.utils.makeStore();
-            var partial = Bones.utils.makePartialHelperWithStore(store);
-            partial('test', {
-                model: 'hello'
-            });
-            should.exist(store[0]);
-            store[0].should.be.a('object');
-            store[0].should.have.property('model');
-            store[0].model.should.equal('hello');
+        it('should overwrite primitives', function(done) {
+//            done('implement');
             done();
         });
     });
 
-    describe('.templateSubviews', function() {
-        var html = ''
-          , element
-          , store;
+    describe('.toClient', function() {
+        it('should return a schema with only the client and shared properties', function(done) {
+            var parsed = sscParse.toClient(testSchema);
 
-        it('should replace all partial placeholders with rendered html', function(done) {
-            store = Bones.utils.makeStore();
-            html = server.plugin.templates.Lorems({
-                data: tests,
-                partial: Bones.utils.makePartialHelperWithStore(store)
-            });
-            element = $('<div/>').html(html);
-            $('div[data-view^=""]', element).length.should.equal(2);
-            html = Bones.utils.templateSubviews(html, store);
-            element = $('<div/>').html(html);
-            $('div[data-view^=""]', element).length.should.equal(2);
-            $('div[data-view^=""]', element).each(function() {
-                $(this).html().should.not.equal('');
-            });
+            parsed.should.be.a('object');
+
+            console.log('parsed: ', parsed);
+
+            parsed.should.have.property('name');
+            parsed.should.have.property('country');
+            parsed.should.have.property('created_on');
+            parsed.should.have.property('address');
+            parsed.should.have.property('vendors');
+
+            parsed.name.should.be.a('object');
+            parsed.name.type.should.exist();
+            parsed.name.type.should.equal('Text');
+            parsed.name.validators.should.exist().with.length(1);
+
+            parsed.country.should.be.a('object');
+            parsed.country.type.should.exist();
+            parsed.country.type.should.equal('Text');
+            parsed.country.validators.should.exist().with.length(2);
+
+            parsed.created_on.should.be.a('string');
+            parsed.created_on.should.equal('Date');
+
+            parsed.address.should.be.a('string');
+            parsed.address.should.equal('Text');
+
+            parsed.vendors.should.be.a('object');
+            parsed.vendors.type.should.exist().and.equal('Text')
+
             done();
         });
 
-        it('should replace the data-id for the temporary object with a model.id', function(done) {
-            var i = 5;
-            $('div[data-view^=""]', element).each(function() {
-                $(this).attr('data-id').should.equal(i + '');
-                i++;
-            });
-            done();
-        });
-    });
+        it('should strip "client", "c", "shared", and "sh" keys', function(done) {
+            var parsed = sscParse.toClient(testSchema);
 
-    describe('.templateAll', function() {
-        var html = '';
+            parsed.should.be.a('object');
 
-        it('should recursively template a view and its subviews', function(done) {
-            html = Bones.utils.templateAll('Lorems', { data: tests });
-            var element = $('<div/>').html(html);
-            $('div[data-view^=""]', element).length.should.equal(2);
-            $('div[data-view^=""]', element).each(function() {
-                $(this).html().should.not.equal('');
-            });
-            done();
-       });
-    });
+            checkProperties(parsed);
 
-    describe('.renderSubviews', function() {
-        var html = ''
-          , rendered = ''
-          , views = {}
-          , renderedElement = {};
-
-        before(function() {
-            _.each(tests, function(test) {
-                testModels.push(new server.plugin.models['Lorem'](test));
-            });
-        });
-
-        it('should return an object of views it has attached to prerendered placeholders given a jquery element', function(done) {
-            var index = 5;
-            var rendered = '';
-            html = Bones.utils.templateAll('Lorems', { data: tests });
-            var element = $('<div/>').html(html);
-            views = Bones.utils.renderSubviews(element);
-
-            _.keys(views).length.should.equal(1);
-            _.each(views, function(typeViews) {
-                _.each(typeViews, function(view) {
-                    view.model.id.should.equal(index);
-                    rendered = view.$el.html();
-                    view.model = new server.models['Lorem']({ _id: 7, name: 'good-bye' });
-                    view.render();
-                    // find the view's element within the original element and check it's rerendered
-                    $(view.$el, element).html().should.not.equal(rendered);
-                    index++;
-                });
-            });
-            done();
-        });
-
-        it('should replace placeholders with view elements if shouldReplace is undefined or default (true)', function(done) {
-            var index = 5;
-            var rendered = '';
-            html = Bones.utils.templateAll('Lorems', { data: tests });
-            var element = $('<div/>').html(html);
-            $('div[data-view^=""]', element).length.should.equal(2);
-            views = Bones.utils.renderSubviews(element);
-            $('div[data-view^=""]', element).length.should.equal(0);
-            done();
-        });
-
-        it('should not replace placeholders with view elements if shouldReplace is false', function(done) {
-            var index = 5;
-            var rendered = '';
-            html = Bones.utils.templateAll('Lorems', { data: tests });
-            var element = $('<div/>').html(html);
-            $('div[data-view^=""]', element).length.should.equal(2);
-            views = Bones.utils.renderSubviews(element, null, false);
-            $('div[data-view^=""]', element).length.should.equal(2);
-            done();
-        });
-
-        it('should replace all partial placeholders with rendered html given an element and store', function(done) {
-            var store = Bones.utils.makeStore();
-            html = server.plugin.templates.Lorems({
-                data: testModels,
-                partial: Bones.utils.makePartialHelperWithStore(store)
-            });
-            renderedElement = $('<div/>').html(html);
-            $('div[data-view^=""]', renderedElement).length.should.equal(2);
-            views = Bones.utils.renderSubviews(renderedElement, store);
-            $('div[data-view^=""]', renderedElement).length.should.equal(0);
-            done();
-        });
-
-        it('should replace the data-id for the temporary object with a model.id', function(done) {
-            var i = 5;
-            $('div[data-view^=""]', renderedElement).each(function() {
-                $(this).attr('data-id').should.equal(i + '');
-                i++;
-            });
+            function checkProperties(schema) {
+                for (var prop in schema) {
+                    if (typeof schema[prop] === 'object') {
+                        checkProperties(schema[prop]);
+                    } else {
+                        schema[prop].should.not.equal('client');
+                        schema[prop].should.not.equal('c');
+                        schema[prop].should.not.equal('shared');
+                        schema[prop].should.not.equal('sh');
+                    }
+                }
+            }
             done();
         });
     });
 
-    describe('#renderAll', function() {
-       it('should recursively render the view and its subviews', function(done) {
-           var view = new server.plugin.views['Lorems'](new server.plugin.models['Lorems']({ collection: tests }));
-           view.renderAll();
-           $('div[data-view^=""]', view.$el).length.should.equal(0);
-           $('div', view.$el).each(function() {
-               $(this).html().should.not.equal('');
-           });
-           done();
-       });
+    describe('.toServer', function() {
+        it('should return a schema with only the server and shared properties', function(done) {
+            var parsed = sscParse.toServer(testSchema);
+
+            parsed.should.be.a('object');
+
+            parsed.should.have.property('name');
+            parsed.should.have.property('country');
+            parsed.should.have.property('created_on');
+            parsed.should.have.property('address');
+            parsed.should.have.property('vendors');
+
+            parsed.name.should.be.a('object');
+            parsed.name.type.should.exist();
+            parsed.name.type.should.equal('String');
+            parsed.name.validators.should.exist().with.length(1);
+
+            parsed.country.should.be.a('object');
+            parsed.country.type.should.exist();
+            parsed.country.type.should.equal('String');
+            parsed.country.validators.should.exist().with.length(3);
+
+            parsed.created_on.should.be.a('string');
+            parsed.created_on.should.equal('Date');
+
+            parsed.address.should.be.a('string');
+            parsed.address.should.equal('Text');
+
+            parsed.vendors.should.be.a('object');
+            parsed.vendors.type.should.exist().and.equal('String');
+            parsed.vendors.method.should.exist().and.be.a('array').with.lengthOf('1');
+
+            done();
+        });
+
+        it('should strip "server", "s", "shared", and "sh" keys', function(done) {
+            var parsed = sscParse.toServer(testSchema);
+
+            parsed.should.be.a('object');
+
+            checkProperties(parsed);
+
+            function checkProperties(schema) {
+                for (var prop in schema) {
+                    if (typeof schema[prop] === 'object') {
+                        checkProperties(schema[prop]);
+                    } else {
+                        schema[prop].should.not.equal('server');
+                        schema[prop].should.not.equal('s');
+                        schema[prop].should.not.equal('shared');
+                        schema[prop].should.not.equal('sh');
+                    }
+                }
+            }
+            done();
+        });
     });
 });

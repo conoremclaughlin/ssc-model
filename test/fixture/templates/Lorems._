@@ -1,4 +1,0 @@
-<p> Are your test definitions rendering?!</p>
-<% _.each(data, function(test) { %>
-     <%= partial('Lorem', { model: test }) %>
-<% }); %> 
